@@ -7,147 +7,79 @@
 // an array of methods. If one of them returns with a promise,
 // WebdriverIO will wait until that promise is resolved to continue.
 //
+import { GherkinDocument } from '@cucumber/messages';
+import { ITestCaseHookParameter } from '@cucumber/cucumber';
+
+// Define an interface for feature data
+interface FeatureData {
+    totalScenarios: number;
+    currentIndex: number;
+}
+const normalizeUri = (uri: string): string => {
+    return uri.replace(/\\/g, '/').replace(/.*\/src/, 'src').toLowerCase();
+};
+
+// In-memory storage for feature data per thread
+const featureDataStorage: Record<string, FeatureData> = {};
+
 export const hooks = {
-    /**
-     * Gets executed once before all workers get launched.
-     * @param {Object} config wdio configuration object
-     * @param {Array.<Object>} capabilities list of capabilities details
-     */
-    // onPrepare: function (config, capabilities) {
-    // },
-    /**
-     * Gets executed before a worker process is spawned & can be used to initialize specific service
-     * for that worker as well as modify runtime environments in an async fashion.
-     * @param  {String} cid    capability id (e.g 0-0)
-     * @param  {[type]} caps   object containing capabilities for session
-     * @param  {[type]} specs  specs to be run in the worker process
-     * @param  {[type]} args   object that will be merged with the main
-     *                         configuration once worker is initialized
-     * @param  {[type]} execArgv list of string arguments passed to the worker process
-     */
-    // onWorkerStart: function (cid, caps, specs, args, execArgv) {
-    // },
-    /**
-     * Gets executed just before initializing the webdriver session and test framework.
-     * It allows you to manipulate configurations depending on the capability or spec.
-     * @param {Object} config wdio configuration object
-     * @param {Array.<Object>} capabilities list of capabilities details
-     * @param {Array.<String>} specs List of spec file paths that are to be run
-     */
-    // beforeSession: function (config, capabilities, specs) {
-    // },
-    /**
-     * Gets executed before test execution begins. At this point you can access to all global
-     * variables like `browser`. It is the perfect place to define custom commands.
-     * @param {Array.<Object>} capabilities list of capabilities details
-     * @param {Array.<String>} specs List of spec file paths that are to be run
-     */
-    // before: function (capabilities, specs) {
-    // },
-    /**
-     * Gets executed before the suite starts.
-     * @param {Object} suite suite details
-     */
-    // beforeSuite: function (suite) {
-    // },
-    /**
-     * This hook gets executed _before_ every hook within the suite starts.
-     * (For example, this runs before calling `before`, `beforeEach`, `after`)
-     *
-     * (`stepData` and `world` are Cucumber-specific.)
-     *
-     */
-    // beforeHook: function (test, context, stepData, world) {
-    // },
-    /**
-     * Hook that gets executed _after_ every hook within the suite ends.
-     * (For example, this runs after calling `before`, `beforeEach`, `after`, `afterEach` in Mocha.)
-     *
-     * (`stepData` and `world` are Cucumber-specific.)
-     */
-    // afterHook:function(test,context,{error, result, duration, passed, retries}, stepData,world) {
-    // },
-    /**
-     * Function to be executed before a test (in Mocha/Jasmine) starts.
-     */
-    // beforeTest: function (test, context) {
-    // },
-    /**
-     * Runs before a WebdriverIO command is executed.
-     * @param {String} commandName hook command name
-     * @param {Array} args arguments that the command would receive
-     */
-    // beforeCommand: function (commandName, args) {
-    // },
-    /**
-     * Runs after a WebdriverIO command gets executed
-     * @param {String} commandName hook command name
-     * @param {Array} args arguments that command would receive
-     * @param {Number} result 0 - command success, 1 - command error
-     * @param {Object} error error object, if any
-     */
-    // afterCommand: function (commandName, args, result, error) {
-    // },
-    /**
-     * Function to be executed after a test (in Mocha/Jasmine)
-     */
-    // afterTest: function (test, context, {error, result, duration, passed, retries}) {
-    // },
-    /**
-     * Hook that gets executed after the suite has ended.
-     * @param {Object} suite suite details
-     */
-    // afterSuite: function (suite) {
-    // },
-    /**
-     * Gets executed after all tests are done. You still have access to all global variables from
-     * the test.
-     * @param {Number} result 0 - test pass, 1 - test fail
-     * @param {Array.<Object>} capabilities list of capabilities details
-     * @param {Array.<String>} specs List of spec file paths that ran
-     */
-    // after: function (result, capabilities, specs) {
-    // },
-    /**
-     * Gets executed right after terminating the webdriver session.
-     * @param {Object} config wdio configuration object
-     * @param {Array.<Object>} capabilities list of capabilities details
-     * @param {Array.<String>} specs List of spec file paths that ran
-     */
-    // afterSession: function (config, capabilities, specs) {
-    // },
-    /**
-     * Gets executed after all workers have shut down and the process is about to exit.
-     * An error thrown in the `onComplete` hook will result in the test run failing.
-     * @param {Object} exitCode 0 - success, 1 - fail
-     * @param {Object} config wdio configuration object
-     * @param {Array.<Object>} capabilities list of capabilities details
-     * @param {<Object>} results object containing test results
-     */
-    // onComplete: function (exitCode, config, capabilities, results) {
-    // },
-    /**
-     * Gets executed when a refresh happens.
-     * @param {String} oldSessionId session ID of the old session
-     * @param {String} newSessionId session ID of the new session
-     */
-    // onReload: function (oldSessionId, newSessionId) {
-    // },
+   
     /**
      * Cucumber-specific hooks
      */
-    // beforeFeature: function (uri, feature, scenarios) {
-    // },
-    // beforeScenario: function (uri, feature, scenario, sourceLocation) {
-    // },
-    // beforeStep: function ({uri, feature, step}, context) {
-    // },
-    // afterStep: function ({uri, feature, step}, context, {error, result, duration, passed}) {
-    // },
-    afterScenario: function (world, result, context) {
-        console.log(`Reloading session after test `);
-         browser.reloadSession();
+    /**
+     * Cucumber Hook: Runs before a Cucumber Feature.
+     * @param {string} uri - Path to the feature file.
+     * @param {GherkinDocument['feature']} feature - Cucumber feature object.
+     */
+    beforeFeature: (uri: string, feature: GherkinDocument['feature']): void => {
+        const featureKey = normalizeUri(uri);
+        console.log(`beforeFeature URI (normalized): ${featureKey}`);
+        
+        const scenarios = feature.children?.filter((child) => child.scenario) || [];
+        featureDataStorage[featureKey] = {
+            totalScenarios: scenarios.length,
+            currentIndex: 0
+        };
+    
+        const featureName = feature.name || 'Unnamed Feature';
+        console.log(`Feature: ${featureName} - Total Scenarios: ${scenarios.length}`);
     },
-    // afterFeature: function (uri, feature, scenarios) {
-    // }
+    /**
+     * Cucumber Hook: Runs after a Cucumber Scenario.
+     * @param {ITestCaseHookParameter} world - World object containing information on pickle and test step.
+     * @param {object} result - Results object containing scenario results.
+     * @param {boolean} result.passed - True if the scenario has passed.
+     * @param {string} result.error - Error stack if the scenario failed.
+     * @param {number} result.duration - Duration of the scenario in milliseconds.
+     * @param {object} context - Cucumber World object.
+     */
+    afterScenario: async (
+        world: ITestCaseHookParameter,
+        result: { passed: boolean; error?: string; duration: number },
+        context: object
+    ): Promise<void> => {
+        const featureKey = normalizeUri(world.pickle.uri);
+        console.log(`afterScenario URI (normalized): ${featureKey}`);
+        
+        const featureData = featureDataStorage[featureKey];
+        if (!featureData) {
+            console.error(`Feature data not found for URI: ${featureKey}`);
+            return;
+        }
+    
+        featureData.currentIndex += 1;
+    
+        const { currentIndex, totalScenarios } = featureData;
+        console.log(`Completed Scenario ${currentIndex} of ${totalScenarios}`);
+    
+        if (currentIndex === totalScenarios) {
+            console.log(`All scenarios completed for feature. Deleting session.`);
+            browser.deleteSession();
+        } else {
+            console.log(`Reloading session for next scenario.`);
+           await browser.reloadSession();
+        }
+    }
+   
 };

@@ -65,7 +65,7 @@ export const config: WebdriverIO.Config = {
     // and 30 processes will get spawned. The property handles how many capabilities
     // from the same test should run tests.
     //
-    // maxInstances: 5,
+    maxInstances: 2,
     //
     // If you have trouble getting all important capabilities together, check out the
     // Sauce Labs platform configurator - a great tool to configure your capabilities:
@@ -82,7 +82,7 @@ export const config: WebdriverIO.Config = {
         "LT:Options": {
             browserName: "chrome",
             browserVersion: "latest",
-            build: "WebDriver Selenium Sample"
+            build: "WebDriverIO Scenario Session Management"
         }
 
         // If outputDir is provided WebdriverIO can capture driver session logs
