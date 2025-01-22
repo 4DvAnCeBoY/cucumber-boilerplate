@@ -84,8 +84,8 @@ export const hooks = {
         console.log(`Test Duration: ${duration}ms`);
 
         // Add LambdaTest metadata
-        browser.executeScript(`lambda-name=${test.title}`, "nan");
-        browser.executeScript(`lambda-status=${passed ? 'passed' : 'failed'}`, "nan");
+        browser.executeScript(`lambda-name=${test.title}`,[]);
+        browser.executeScript(`lambda-status=${passed ? 'passed' : 'failed'}`, []);
 
         // Handle progress logging
         const featureKey = normalizeUri(test.file || 'unknown_feature');
