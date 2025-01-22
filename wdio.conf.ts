@@ -13,7 +13,26 @@ export const config: WebdriverIO.Config = {
     //
     // WebdriverIO allows it to run your tests in arbitrary locations (e.g. locally or
     // on a remote machine).
-    runner: 'local',
+    // runner: 'local',
+
+    services: [
+        [
+            "lambdatest",
+            {
+                tunnel: false,
+                lambdatestOpts: {
+                    logFile: "tunnel.log"
+                }
+            }
+        ]
+    ],
+
+    user: process.env.LT_USERNAME,
+    key: process.env.LT_ACCESS_KEY,
+
+    path: "/wd/hub",
+    hostname: "hub.lambdatest.com",
+    port: 80,
     //
     // ==================
     // Specify Test Files
@@ -24,7 +43,7 @@ export const config: WebdriverIO.Config = {
     // directory is where your package.json resides, so `wdio` will be called from there.
     //
     specs: [
-        './src/features/**/*.feature',
+        './src/features/sampleSnippets.feature',
     ],
     // Patterns to exclude.
     exclude: [
@@ -57,9 +76,15 @@ export const config: WebdriverIO.Config = {
         // maxInstances can get overwritten per capability. So if you have an in-house Selenium
         // grid with only 5 firefox instances available you can make sure that not more than
         // 5 instances get started at a time.
-        maxInstances: 5,
+        // maxInstances: 5,
         //
-        browserName: 'chrome',
+
+        "LT:Options": {
+            browserName: "chrome",
+            browserVersion: "latest",
+            build: "WebDriver Selenium Sample"
+        }
+
         // If outputDir is provided WebdriverIO can capture driver session logs
         // it is possible to configure which logTypes to include/exclude.
         // excludeDriverLogs: ['*'], // pass '*' to exclude all driver session logs
@@ -98,14 +123,14 @@ export const config: WebdriverIO.Config = {
     // with `/`, the base url gets prepended, not including the path portion of your baseUrl.
     // If your `url` parameter starts without a scheme or `/` (like `some/path`), the base url
     // gets prepended directly.
-    baseUrl: 'http://localhost:8080',
+    // baseUrl: 'http://localhost:8080',
     //
     // Default timeout for all waitFor* commands.
-    waitforTimeout: 10000,
+    waitforTimeout: 100000,
     //
     // Default timeout in milliseconds for request
     // if browser driver or grid doesn't send response
-    connectionRetryTimeout: 90000,
+    connectionRetryTimeout: 900000,
     //
     // Default request retries count
     connectionRetryCount: 3,
@@ -168,7 +193,7 @@ export const config: WebdriverIO.Config = {
             // works since version 1.1 of the wdio-cucumber-framework
             // './src/**/*.js',
         ],
-        scenarioLevelReporter: false,
+        scenarioLevelReporter: true,
         order: 'defined',
         // <string> specify a custom snippet syntax
         snippetSyntax: undefined,

@@ -144,8 +144,10 @@ export const hooks = {
     // },
     // afterStep: function ({uri, feature, step}, context, {error, result, duration, passed}) {
     // },
-    // afterScenario: function (uri, feature, scenario, result, sourceLocation) {
-    // },
+    afterScenario: function (world, result, context) {
+        console.log(`Reloading session after test `);
+         browser.reloadSession();
+    },
     // afterFeature: function (uri, feature, scenarios) {
     // }
 };
