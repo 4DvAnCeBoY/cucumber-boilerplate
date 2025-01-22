@@ -2,7 +2,7 @@ Feature: Sample Snippets test
     As a developer
     I should be able to use given text snippets
 
-    #@Isolate
+    @Include
     Scenario: open URL
         Given the page url is not "https://guinea-pig.webdriver.io/"
         And   I open the url "https://guinea-pig.webdriver.io/"

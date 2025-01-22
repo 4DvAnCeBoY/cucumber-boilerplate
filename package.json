@@ -31,7 +31,9 @@
     "test:lint": "eslint 'src/**/*.ts' 'test/**/*.js!(setup.js)'",
     "test:unit": "jest --config=jest.config.cjs --detectOpenHandles",
     "test:features": "wdio run wdio.BUILD.conf.ts",
+    "wdio-tag": "wdio run wdio.conf.ts --cucumberOpts.tags @Include",
     "wdio": "wdio run wdio.conf.ts"
+    
   },
   "devDependencies": {
     "@types/jest": "^29.5.13",
