@@ -44,6 +44,7 @@ export const config: WebdriverIO.Config = {
     //
     specs: [
         './src/features/sampleSnippets.feature',
+        './src/features/githubSearch.feature'
     ],
     // Patterns to exclude.
     exclude: [

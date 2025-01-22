@@ -1,12 +1,3 @@
-//
-// =====
-// Hooks
-// =====
-// WebdriverIO provides a several hooks you can use to interfere the test process in order to
-// enhance it and build services around it. You can either apply a single function to it or
-// an array of methods. If one of them returns with a promise,
-// WebdriverIO will wait until that promise is resolved to continue.
-//
 import { GherkinDocument } from '@cucumber/messages';
 import { ITestCaseHookParameter } from '@cucumber/cucumber';
 
@@ -23,63 +14,118 @@ const normalizeUri = (uri: string): string => {
 const featureDataStorage: Record<string, FeatureData> = {};
 
 export const hooks = {
-   
-    /**
-     * Cucumber-specific hooks
-     */
-    /**
-     * Cucumber Hook: Runs before a Cucumber Feature.
-     * @param {string} uri - Path to the feature file.
-     * @param {GherkinDocument['feature']} feature - Cucumber feature object.
-     */
     beforeFeature: (uri: string, feature: GherkinDocument['feature']): void => {
         const featureKey = normalizeUri(uri);
-        console.log(`beforeFeature URI (normalized): ${featureKey}`);
-        
-        const scenarios = feature.children?.filter((child) => child.scenario) || [];
+
+        if (!feature) {
+            console.error(`No feature object found for URI: ${uri}`);
+            return;
+        }
+
+        // Retrieve the tags passed via the CLI
+        const cliTags = process.env.TAGS || '';
+
+        // Determine exclude tags (e.g., "not @tag")
+        const excludeTags = cliTags
+            .split(' ')
+            .filter((tag) => tag.startsWith('not '))
+            .map((tag) => tag.replace('not ', ''));
+
+        // Determine include tags (tags without "not ")
+        const includeTags = cliTags
+            .split(' ')
+            .filter((tag) => !tag.startsWith('not '));
+
+        // Filter scenarios based on tags and count example rows
+        const totalScenarios = feature.children?.reduce((count, child) => {
+            if (child.scenario) {
+                const tags = child.scenario.tags?.map((tag) => tag.name) || [];
+
+                // Skip scenarios with exclude tags
+                const isExcluded = excludeTags.some((tag) => tags.includes(tag));
+                if (isExcluded) return count;
+
+                // Include scenarios with include tags (or all if no include tags specified)
+                const hasIncludeTag =
+                    includeTags.length === 0 || includeTags.some((tag) => tags.includes(tag));
+                if (hasIncludeTag) {
+                    // Count each example row for Scenario Outlines
+                    const examplesCount = child.scenario.examples?.reduce((exampleCount, example) => {
+                        return exampleCount + (example.tableBody?.length || 0);
+                    }, 0) || 1; // Default to 1 if no examples are present
+                    return count + examplesCount;
+                }
+            }
+            return count;
+        }, 0) || 0;
+
+        // Store the total count of scenarios
         featureDataStorage[featureKey] = {
-            totalScenarios: scenarios.length,
-            currentIndex: 0
+            totalScenarios,
+            currentIndex: 0,
         };
-    
+
+        // Log the feature name and total scenarios
         const featureName = feature.name || 'Unnamed Feature';
-        console.log(`Feature: ${featureName} - Total Scenarios: ${scenarios.length}`);
+        console.log(
+            `Feature: ${featureName} - Scenarios matching tags "${cliTags || 'ALL'}": ${totalScenarios}`
+        );
     },
-    /**
-     * Cucumber Hook: Runs after a Cucumber Scenario.
-     * @param {ITestCaseHookParameter} world - World object containing information on pickle and test step.
-     * @param {object} result - Results object containing scenario results.
-     * @param {boolean} result.passed - True if the scenario has passed.
-     * @param {string} result.error - Error stack if the scenario failed.
-     * @param {number} result.duration - Duration of the scenario in milliseconds.
-     * @param {object} context - Cucumber World object.
-     */
-    afterScenario: async (
-        world: ITestCaseHookParameter,
-        result: { passed: boolean; error?: string; duration: number },
-        context: object
-    ): Promise<void> => {
-        const featureKey = normalizeUri(world.pickle.uri);
-        console.log(`afterScenario URI (normalized): ${featureKey}`);
-        
+
+    afterTest: async function (
+        test: { title: any; file: any; },
+        context: any,
+        { error, result, duration, passed, retries }: any
+    ) {
+        // Log the current test details
+        console.log(`Test Name: ${test.title}`);
+        console.log(`Test Passed: ${passed}`);
+        console.log(`Retries Attempted: ${retries.attempts}`);
+        console.log(`Test Duration: ${duration}ms`);
+
+        // Add LambdaTest metadata
+        browser.executeScript(`lambda-name=${test.title}`, "nan");
+        browser.executeScript(`lambda-status=${passed ? 'passed' : 'failed'}`, "nan");
+
+        // Handle progress logging
+        const featureKey = normalizeUri(test.file || 'unknown_feature');
         const featureData = featureDataStorage[featureKey];
+
         if (!featureData) {
             console.error(`Feature data not found for URI: ${featureKey}`);
             return;
         }
-    
-        featureData.currentIndex += 1;
-    
-        const { currentIndex, totalScenarios } = featureData;
-        console.log(`Completed Scenario ${currentIndex} of ${totalScenarios}`);
-    
-        if (currentIndex === totalScenarios) {
+
+        const { totalScenarios } = featureData;
+
+        // Only update progress if the test is not skipped and is not a retry
+        if (passed || error) {
+            featureData.currentIndex += 1;
+        }
+
+        // Log execution progress
+        console.log(
+            `Execution progress: Scenario ${featureData.currentIndex} of ${featureData.totalScenarios}`
+        );
+
+        // Retry handling
+        if (!passed && retries.attempts < retries.limit) {
+            console.log(
+                `Retrying test "${test.title}". Attempt ${retries.attempts + 1} of ${retries.limit}`
+            );
+            return; // Do not reload or delete session on retries
+        }
+
+        // Session management
+        if (featureData.currentIndex === totalScenarios) {
             console.log(`All scenarios completed for feature. Deleting session.`);
-            browser.deleteSession();
+            await browser.deleteSession();
         } else {
             console.log(`Reloading session for next scenario.`);
-           await browser.reloadSession();
+            await browser.reloadSession();
         }
     }
-   
+
+
+
 };
